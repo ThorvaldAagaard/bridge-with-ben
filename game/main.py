@@ -1,3 +1,4 @@
+#import pygbag.aio as asyncio
 import pygame
 import asyncio
 import sys
@@ -11,7 +12,10 @@ from buttons import Button
 
 # Initialize Pygame
 pygame.init()
-base_directory = Path(__file__).parent
+try:
+    base_directory = Path(__file__).parent
+except:
+    base_directory = os.getcwd()
 
 # Images
 icon = pygame.image.load(os.path.join(base_directory, "images/icon.png"))
@@ -44,6 +48,7 @@ async def main():
     running = True
     # Main game loop
     while running:
+        await asyncio.sleep(0)
         board_no += 1
         table.next_board(board_no)
         bidding = True
@@ -60,7 +65,7 @@ async def main():
                     if lobby_btn.on_button():
                         pygame.quit()
                         sys.exit()
-                        
+
                     # Iterating over levels and their denominations
                     for bid, bidSuits in table.board.available_bids.items():
                         # Clicking on the level bid
@@ -77,7 +82,8 @@ async def main():
                                     table.board.make_bid(table.board.turn,clicked_bid)
                                     redraw_bidding(screen, font, buttons, table, table.board, user, table.board.available_bids, table.board.special_bids)
             bidding = not table.board.end_bidding()
-                        
+            await asyncio.sleep(0)
+
         # The board is passed out, dealing next board
         if not table.board.declarer:
             redraw_score(screen, font, font2, buttons, table, table.board, user)
@@ -141,7 +147,8 @@ async def main():
                                             else:
                                                 table.board.make_move(card.symbol)
                                                 redraw_playing(screen, font, font2, buttons, table, table.board, user)
-                playing = table.board.score == 0                                 
+                playing = table.board.score == 0
+                await asyncio.sleep(0)
 
         # Board is done, displaying score and dealing next board
         if table.board.score:
@@ -150,6 +157,8 @@ async def main():
             pygame.time.delay(4000)
 
         pygame.display.update()
+        await asyncio.sleep(0)
+
 
 # Quit Pygame
 # pygame.quit()
