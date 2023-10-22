@@ -102,4 +102,4 @@ class Card:
         return False
 
     def __repr__(self):
-        return f"Card {self.symbol}"
+        return f"{self.symbol}"

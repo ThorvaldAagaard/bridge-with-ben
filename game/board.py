@@ -31,6 +31,7 @@ class Board:
         self.history = []
         self.status = "bidding"
         self.bidding = []
+        self.auction = []
         self.winning_bid = None
         self.winning_side = []
         self.vulnerable = [False, False, False, False]
@@ -44,6 +45,7 @@ class Board:
                                 "S": {"0": None, "1": None},
                                 "N": {"0": None, "1": None}}
         self.dummy = None
+        self.dummy_cards = None
         self.dummy_visible = False
         self.trump = None
         self.lead = None
@@ -68,6 +70,7 @@ class Board:
         :return: None
         """
         shuffle_deck = self.deck
+        random.seed(42)
         random.shuffle(shuffle_deck)
         self.north = [Card(symbol) for symbol in sorted(shuffle_deck[:13], key=lambda x: (x[0], -int(x[1:])))]
         self.south = [Card(symbol) for symbol in sorted(shuffle_deck[13:26], key=lambda x: (x[0], -int(x[1:])))]
@@ -191,8 +194,8 @@ class Board:
         :param bid: string
         :return: None
         """
-        if bid != "pas":
-            if bid == "ktr" or bid == "rktr":
+        if bid != "PASS":
+            if bid == "X" or bid == "XX":
                 self.winning_bid = self.winning_bid + "X"
             else:
                 self.winning_bid = bid
@@ -223,11 +226,12 @@ class Board:
             self.turn = 0
         # Updating bidding history and getting available bids for next turn
         self.bidding.append(Bid(bid))
+        self.auction.append(bid)
         self.available_bids, self.special_bids = self.get_available_bids()
         # Checking that bidding phase is over
         if self.end_bidding():
             if self.dealer == 0:
-                self.bidding = [1, 2, 3] + self.bidding
+                self.bidding = [None, None, None] + self.bidding
             else:
                 self.bidding = [None] * (self.dealer - 1) + self.bidding
 
@@ -236,18 +240,18 @@ class Board:
         Getting available bids for current turn.
         :return: tuple
         """
-        special_bids = ["pas"]
+        special_bids = ["PASS"]
         if self.winning_bid:
             indx = self.bids.index(self.winning_bid[:2])
             if self.turn not in self.winning_side:
                 # Adding redouble to special bids, when opponents called double
                 if self.winning_bid[-1] == "X" and len(self.winning_bid) == 3:
-                    special_bids = special_bids + ["rktr"]
+                    special_bids = special_bids + ["XX"]
                 elif self.winning_bid[-1] == "X" and len(self.winning_bid) == 4:
                     pass
                 # Adding double to special bids, when opponents called any bid (exclude double)
                 else:
-                    special_bids = special_bids + ["ktr"]
+                    special_bids = special_bids + ["XX"]
             # Getting higher bids than already has been bid
             available_bids = self.bids[indx + 1:]
         else:
@@ -278,13 +282,13 @@ class Board:
 
         # Auction begins with four consecutive passes
         if  len(bidding) == 4:
-            if all(b.bid == "pas" for b in bidding[:4]):
+            if all(b.bid == "PASS" for b in bidding[:4]):
                 self.status = "play"
                 self.passed_out = True
                 return True
         # Three consecutive passes following a bid, double or redouble
         elif len(bidding) > 3:
-            if all(b.bid == "pas" for b in bidding[-3:]) and len(bidding) > 3:
+            if all(b.bid == "PASS" for b in bidding[-3:]) and len(bidding) > 3:
                 self.status = "play"
                 # Setting the lead, the trump and the dummy
                 self.set_lead()
@@ -351,14 +355,14 @@ class Board:
         if not self.dummy_visible:
             self.dummy_visible = True
             if self.dummy == 0:
-                dummy_cards = self.south
+                self.dummy_cards = self.south
             elif self.dummy == 1:
-                dummy_cards = self.west
+                self.dummy_cards = self.west
             elif self.dummy == 2:
-                dummy_cards = self.north
+                self.dummy_cards = self.north
             else:
-                dummy_cards = self.east
-            for c in dummy_cards:
+                self.dummy_cards = self.east
+            for c in self.dummy_cards:
                 c.hidden = False
         # Updating turn
         self.turn += 1

@@ -14,7 +14,7 @@ class Bid:
         self.rect = None
 
     def __repr__(self):
-        return f"Bid: {self.bid}"
+        return f"{self.bid}"
 
 
 class BidButton:
@@ -66,6 +66,7 @@ class BidButtonSuit:
         Checking that the denomination bid is clicked.
         :return: boolean
         """
+        if self.rect == None: return False
         pos = pygame.mouse.get_pos()
         if self.rect[0] < pos[0] < self.rect[0] + self.rect[2]:
             if self.rect[1] < pos[1] < self.rect[1] + self.rect[3]:
@@ -86,9 +87,9 @@ class SpecialBid:
         self.bid = bid
         self.bidded = False
         self.rect = None
-        if bid == "ktr":
+        if bid == "X":
             self.text = 'X'
-        elif bid == "rktr":
+        elif bid == "XX":
             self.text = 'XX'
         else:
             self.text = 'P'
@@ -98,6 +99,7 @@ class SpecialBid:
         Checking that the special bid is clicked.
         :return: boolean
         """
+        if self.rect == None: return False
         pos = pygame.mouse.get_pos()
         if self.rect[0] < pos[0] < self.rect[0] + self.rect[2]:
             if self.rect[1] < pos[1] < self.rect[1] + self.rect[3]:

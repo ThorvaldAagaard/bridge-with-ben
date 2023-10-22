@@ -1,2 +1,5 @@
 game/__pycache__
 game/build
+game/bidding/__pycache__
+game/nn/__pycache__
+game/ddsolver/__pycache__
