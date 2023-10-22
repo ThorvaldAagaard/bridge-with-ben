@@ -1,7 +1,7 @@
 import random
 from card import Card
 from bid import Bid, BidButton, BidButtonSuit, SpecialBid
-
+import copy
 
 class Board:
     """
@@ -22,6 +22,7 @@ class Board:
     def __init__(self, board_id):
         self.id = board_id
         self.players = [None, None, None, None]
+        self.hands = [None, None, None, None]
         self.north = None
         self.south = None
         self.west = None
@@ -80,6 +81,8 @@ class Board:
         self.south[-1].last_card = True
         self.west[-1].last_card = True
         self.east[-1].last_card = True
+        # Keep a copy of the entire hand
+        self.hands = [copy.deepcopy(self.north), copy.deepcopy(self.east), copy.deepcopy(self.south), copy.deepcopy(self.west)]
 
     def set_vulnerable(self):
         """
@@ -113,6 +116,7 @@ class Board:
         else:
             self.dealer = 1
         self.turn = self.dealer
+        self.auction = ['PAD_START'] * (self.id -1)
         # Getting starting bids
         self.available_bids, self.special_bids = self.get_available_bids()
 
@@ -229,11 +233,12 @@ class Board:
         self.auction.append(bid)
         self.available_bids, self.special_bids = self.get_available_bids()
         # Checking that bidding phase is over
-        if self.end_bidding():
-            if self.dealer == 0:
-                self.bidding = [None, None, None] + self.bidding
-            else:
-                self.bidding = [None] * (self.dealer - 1) + self.bidding
+        #if self.end_bidding():
+            #if self.dealer == 0:
+            #    self.bidding = [None, None, None] + self.bidding
+            #else:
+                #self.bidding = [None] * (self.dealer - 1) + self.bidding
+            #print(self.bidding)
 
     def get_available_bids(self):
         """
@@ -251,7 +256,7 @@ class Board:
                     pass
                 # Adding double to special bids, when opponents called any bid (exclude double)
                 else:
-                    special_bids = special_bids + ["XX"]
+                    special_bids = special_bids + ["X"]
             # Getting higher bids than already has been bid
             available_bids = self.bids[indx + 1:]
         else:
@@ -279,6 +284,7 @@ class Board:
         :return: boolean
         """
         bidding = [x for x in self.bidding if x is not None]
+        print(bidding,len(bidding))
 
         # Auction begins with four consecutive passes
         if  len(bidding) == 4:
@@ -287,8 +293,9 @@ class Board:
                 self.passed_out = True
                 return True
         # Three consecutive passes following a bid, double or redouble
-        elif len(bidding) > 3:
+        if len(bidding) > 3:
             if all(b.bid == "PASS" for b in bidding[-3:]) and len(bidding) > 3:
+                print("XX", self.trump)
                 self.status = "play"
                 # Setting the lead, the trump and the dummy
                 self.set_lead()
@@ -340,6 +347,9 @@ class Board:
             if c.symbol == card_symbol:
                 card = c
                 hand.remove(c)
+        if card == None:
+            print(hand)
+            print(c)
         if len(hand) > 0:
             hand[-1].last_card = True
         # Card is visible for everyone

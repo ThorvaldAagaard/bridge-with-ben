@@ -5,14 +5,23 @@ from pathlib import Path
 
 base_directory = Path(__file__).parent
 
+def load_bidding_image(suit):
+    image = pygame.image.load(os.path.join(base_directory, "images/bid/"+suit+".png"))
+    original_image_rect = image.get_rect()
+    # Scale the image to 80% of its original size
+    scale_factor = 0.8
+    new_image_size = (int(original_image_rect.width * scale_factor), int(original_image_rect.height * scale_factor))
+    image = pygame.transform.scale(image, new_image_size)
+    return image
+
 
 # Images of cards
 bid_font = pygame.font.SysFont("Arial", 24)
-C = pygame.image.load(os.path.join(base_directory, "images/bid/clubs.png"))
-D = pygame.image.load(os.path.join(base_directory, "images/bid/diamonds.png"))
-H = pygame.image.load(os.path.join(base_directory, "images/bid/hearts.png"))
-S = pygame.image.load(os.path.join(base_directory, "images/bid/spades.png"))
-N = bid_font.render("NT", 1, (0, 222, 0), 1)
+C = load_bidding_image("clubs")
+D = load_bidding_image("diamonds")
+H = load_bidding_image("hearts")
+S = load_bidding_image("spades")
+N = bid_font.render("NT", 1, (0, 0, 0))
 
 
 def redraw_sitting(win, font, table, user):
@@ -188,10 +197,33 @@ def redraw_bidding(win, font, buttons, table, board, user, normal_bids, special_
     # Drawing called bids
     for i, b in enumerate(board.bidding):
         if b:
-            x = (((board.dealer - 1) + i) % 4 - 1.5) * 60
-            y = 345 + (((board.dealer - 1) + i) // 4) * 35 + 19
-            text = font.render(b.bid, 1, (0, 255, 0))
-            win.blit(text, (round(win.get_width() / 2 + x - text.get_width() / 2), round(y - text.get_height() / 2)))
+            # South is dealer)
+            if (board.dealer == 0):
+                row = (i+3) // 4
+            else:
+                row = ((board.dealer) + i) // 4
+            y = 345 + (row) * 35 + 19
+            print(b.bid)
+            if (b.bid == "X" or b.bid == "XX"):
+                x = (((board.dealer - 1) + i) % 4 - 1.5) * 60
+                text = font.render(b.bid, 1, (0, 50, 0))                 
+                win.blit(text, (round(win.get_width() / 2 + x - text.get_width() / 2), round(y - text.get_height() / 2)))
+
+            elif (b.bid[1] in {"C","D","H","S"}):
+                x = (((board.dealer - 1) + i) % 4 - 1.5) * 60 - 10
+                text = font.render(b.bid[0], 1, (0, 0, 0))
+                image = eval(b.bid[1])
+                original_image_rect = image.get_rect()
+                # Scale the image to 80% of its original size
+                scale_factor = 0.8
+                new_image_size = (int(original_image_rect.width * scale_factor), int(original_image_rect.height * scale_factor))
+                image = pygame.transform.scale(image, new_image_size)
+                win.blit(image, (round(win.get_width() / 2 + x - image.get_width() / 2) + text.get_width() + 4, round(y - image.get_height() / 2)))
+                win.blit(text, (round(win.get_width() / 2 + x - text.get_width() / 2), round(y - text.get_height() / 2)))
+            else:
+                x = (((board.dealer - 1) + i) % 4 - 1.5) * 60
+                text = font.render(b.bid.replace("PASS","P"), 1, (0, 0, 0))                 
+                win.blit(text, (round(win.get_width() / 2 + x - text.get_width() / 2), round(y - text.get_height() / 2)))
     # Buttons
     for btn in buttons:
         btn.draw(win)
@@ -214,9 +246,9 @@ def redraw_playing(win, font, font2, buttons, table, board, user):
     # Drawing seats
     redraw_sitting(win, font, table, user)
     # Drawing table status
-    game_ready_text = font2.render("Game", 1, (0, 0, 0))
-    win.blit(game_ready_text, (round(win.get_width() / 2 - game_ready_text.get_width() / 2),
-                               round(win.get_height() / 2 - game_ready_text.get_height() / 2)))
+    # game_ready_text = font2.render("Game", 1, (0, 0, 0))
+    #win.blit(game_ready_text, (round(win.get_width() / 2 - game_ready_text.get_width() / 2),
+    #                           round(win.get_height() / 2 - game_ready_text.get_height() / 2)))
     # Drawing cards
     draw_cards(win, font, table, board, user)
     # Drawing info about declarer, final contract and taken tricks by each side
@@ -275,7 +307,7 @@ def redraw_score(win, font, font2, buttons, table, board, user):
     # Drawing seats
     redraw_sitting(win, font, table, user)
     # Drawing title with table ID
-    table_text = font2.render(f"Stół nr {table.id}", 1, (0, 0, 0))
+    table_text = font2.render(f"Board {table.id}", 1, (0, 0, 0))
     win.blit(table_text, (round(win.get_width() / 2 - table_text.get_width() / 2), 10))
     # Drawing score
     if not board.declarer:
