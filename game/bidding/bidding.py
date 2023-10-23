@@ -126,7 +126,6 @@ def bid_max_bid(auction, from_bids):
         return sample_bid(auction, from_bids)
         
 def get_contract(auction):
-    #print(auction)
     contract = None
     doubled = False
     redoubled = False

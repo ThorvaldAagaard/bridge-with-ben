@@ -56,7 +56,8 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Bridge with BEN")
 pygame.display.set_icon(icon)
 
-lobby_btn = Button(200, 80, (7, 32, 110), "Leave", 30, 900)
+lobby_btn = Button(120, 60, (7, 32, 110), "Leave", 30, 900)
+skip_btn = Button(120, 60, (7, 32, 110), "Skip", 30, 820)
 table = Table(1)
 table.set_player(0,"You")
 table.set_player(1,"BEN")
@@ -64,7 +65,7 @@ table.set_player(2,"BEN")
 table.set_player(3,"BEN")
 user = Player("You")
 user.position = 0
-buttons = [lobby_btn]
+buttons = [lobby_btn, skip_btn]
 
 configfile = "ben.conf"
 
@@ -85,6 +86,8 @@ async def get_user_input():
                 if lobby_btn.on_button():
                     pygame.quit()
                     sys.exit()
+                if skip_btn.on_button():
+                    return "Skip"
                 # Dummy can't do any move
                 if user.position != table.board.dummy:
                     # Player's turn
@@ -96,12 +99,12 @@ async def get_user_input():
                             if card.click():
                                 if table.board.color_lead and any(c.symbol[0] == table.board.color_lead for c in hand):
                                     if card.symbol[0] == table.board.color_lead:
-                                        resp = CardResp(card.symbol, [], [])
+                                        resp = CardResp(card.get_ben_value(), [], [])
                                         table.board.make_move(card.symbol)
                                         redraw_playing(screen, font, font2, buttons, table, table.board, user)
                                         waiting = False
                                 else:
-                                    resp = CardResp(card.symbol, [], [])
+                                    resp = CardResp(card.get_ben_value(), [], [])
                                     table.board.make_move(card.symbol)
                                     redraw_playing(screen, font, font2, buttons, table, table.board, user)
                                     waiting = False
@@ -123,12 +126,12 @@ async def get_user_input():
                                 if card.click():
                                     if table.board.color_lead and any(c.symbol[0] == table.board.color_lead for c in dummy_hand):
                                         if card.symbol[0] == table.board.color_lead:
-                                            resp = CardResp(card.symbol, [], [])
+                                            resp = CardResp(card.get_ben_value(), [], [])
                                             table.board.make_move(card.symbol)
                                             redraw_playing(screen, font, font2, buttons, table, table.board, user)
                                             waiting = False
                                     else:
-                                        resp = CardResp(card.symbol, [], [])
+                                        resp = CardResp(card.get_ben_value(), [], [])
                                         table.board.make_move(card.symbol)
                                         redraw_playing(screen, font, font2, buttons, table, table.board, user)
                                         waiting = False
@@ -144,15 +147,12 @@ async def play(models, sampler, board, opening_lead52):
     level = int(contract[0])
     strain_i = bidding.get_strain_i(contract)
     decl_i = bidding.get_decl_i(contract)
-    #print(contract)
-    #print(decl_i)
     is_decl_vuln = board.vulnerable[decl_i]
 
     lefty_hand = board.hands[(decl_i + 1) % 4]
     dummy_hand = board.hands[(decl_i + 2) % 4]
     righty_hand = board.hands[(decl_i + 3) % 4]
     decl_hand = board.hands[decl_i]
-    #print(righty_hand)
     card_players = [
         CardPlayer(models.player_models,0,lefty_hand, dummy_hand,table.board.winning_bid,is_decl_vuln,verbose),
         CardPlayer(models.player_models,1,dummy_hand, decl_hand,table.board.winning_bid,is_decl_vuln,verbose),
@@ -229,6 +229,7 @@ async def play(models, sampler, board, opening_lead52):
 
             else:
                 card_resp = await get_user_input()
+                if (card_resp == "Skip"): return "Skip"
                 card52 = deck52.encode_card(card_resp.card.replace("14","A").replace("13","K").replace("12","Q").replace("11","J").replace("10","T"))
 
             card = deck52.card52to32(card52)
@@ -312,6 +313,18 @@ async def play(models, sampler, board, opening_lead52):
         leader_i = trick_winner
         current_trick = []
         current_trick52 = []
+        # Check for buttons
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONUP:
+                if lobby_btn.on_button():
+                    pygame.quit()
+                    sys.exit()
+                if skip_btn.on_button():
+                    return "Skip"
+        await asyncio.sleep(0)
 
     # play last trick
     print("trick 13")
@@ -319,6 +332,7 @@ async def play(models, sampler, board, opening_lead52):
         
         if not isinstance(card_players[player_i], CardPlayer):
             card_resp = await get_user_input()
+            if (card_resp == "Skip"): return "Skip"
             card52 = deck52.encode_card(card_resp.card.replace("14","A").replace("13","K").replace("12","Q").replace("11","J").replace("10","T"))
         else:
             card52 = np.nonzero(card_players[player_i].hand52)[0][0]
@@ -354,21 +368,17 @@ async def main():
         board_no += 1
         print("Playing: ", board_no)
         table.next_board(board_no)
-        board_no += 1
-        print("Playing: ", board_no)
-        table.next_board(board_no)
-        board_no += 1
-        print("Playing: ", board_no)
-        table.next_board(board_no)
-        await bid_board(models, sampler, level)
-
+        skip = await bid_board(models, sampler, level)
+        if skip == "Skip": continue
         # The board is passed out, dealing next board
         if not table.board.declarer:
             redraw_score(screen, font, font2, buttons, table, table.board, user)
         else:
             card_resp = await opening_lead(models, sampler)
+            if (card_resp == "Skip"): continue
             print("Opening lead: ",card_resp.card)
-            await play(models, sampler, table.board, deck52.encode_card(card_resp.card.symbol()))
+            skip = await play(models, sampler, table.board, deck52.encode_card(card_resp.card))
+            if skip == "Skip": continue
         # Board is done, displaying score and dealing next board
         if table.board.score:
             pygame.time.delay(500)
@@ -391,12 +401,15 @@ async def opening_lead(models, sampler):
     if table.board.turn != 0:
         bot_lead = BotLead([table.board.vulnerable[0], table.board.vulnerable[1]],lead_hand,models,ns,ew,models.lead_threshold,sampler,verbose)
         card_resp = bot_lead.find_opening_lead(table.board.auction)
-        table.board.make_move(card_resp.card.symbol().replace("A","14").replace("k","13").replace("Q","12").replace("J","11").replace("T","10"))
+        table.board.make_move(card_resp.card.symbol().replace("A","14").replace("K","13").replace("Q","12").replace("J","11").replace("T","10"))
         redraw_playing(screen, font, font2, buttons, table, table.board, user)
         await asyncio.sleep(0)
     else:
         card_resp = await get_user_input()
-    #print("Dummy")
+
+        if (card_resp == "Skip"): return "Skip"
+
+
     return card_resp
 
 async def bid_board(models, sampler, level):
@@ -404,7 +417,6 @@ async def bid_board(models, sampler, level):
     west = BotBid([table.board.vulnerable[0], table.board.vulnerable[1]],table.board.west,models,ns, ew, level, sampler, verbose)
     north = BotBid([table.board.vulnerable[0], table.board.vulnerable[1]],table.board.north,models,ns, ew, level, sampler, verbose)
     east = BotBid([table.board.vulnerable[0], table.board.vulnerable[1]],table.board.east,models,ns, ew, level, sampler, verbose)
-    print(table.board.special_bids)
     redraw_bidding(screen, font, buttons, table, table.board, user, table.board.available_bids, table.board.special_bids)
     await asyncio.sleep(0)
     while bidding:
@@ -415,7 +427,6 @@ async def bid_board(models, sampler, level):
         if table.board.turn == 3:
             bid_resp = east.bid(table.board.auction)
         if table.board.turn != user.position:
-            print(table.board.special_bids)
             table.board.make_bid(table.board.turn,bid_resp.bid)
             redraw_bidding(screen, font, buttons, table, table.board, user, table.board.available_bids, table.board.special_bids)
         for event in pygame.event.get():
@@ -426,9 +437,11 @@ async def bid_board(models, sampler, level):
                 if lobby_btn.on_button():
                     pygame.quit()
                     sys.exit()
+                if skip_btn.on_button():
+                    return "Skip"
 
                     # Iterating over levels and their denominations
-                for bid, bidSuits in table.board.available_bids.items():
+                for bid, bid_suits in table.board.available_bids.items():
                         # Clicking on the level bid
                     if bid.click():
                         for b in table.board.available_bids.keys():
@@ -437,20 +450,24 @@ async def bid_board(models, sampler, level):
                         redraw_bidding(screen, font, buttons, table, table.board, user, table.board.available_bids, table.board.special_bids)
                         # Clicking on the denomination, if the level bid has been chosen
                     if bid.active:
-                        for bidSuit in bidSuits:
-                            if bidSuit.click():
-                                clicked_bid = bid.bid + bidSuit.bid
+                        for bid_suit in bid_suits:
+                            if bid_suit.click():
+                                clicked_bid = bid.bid + bid_suit.bid
                                 table.board.make_bid(table.board.turn,clicked_bid)
                                 redraw_bidding(screen, font, buttons, table, table.board, user, table.board.available_bids, table.board.special_bids)
                                         # Clicking on fold or double/redouble bids
                 for special_bid in table.board.special_bids:
                     if special_bid.click():
-                        print(special_bid)
                         table.board.make_bid(table.board.turn,special_bid.bid)
                         redraw_bidding(screen, font, buttons, table, table.board, user, table.board.available_bids, table.board.special_bids)
 
         bidding = not table.board.end_bidding()
         await asyncio.sleep(0)
+    # Bidding ended, so redraw
+    print(table.board.available_bids)
+    print(table.board.special_bids)
+    redraw_bidding(screen, font, buttons, table, table.board, user, table.board.available_bids, table.board.special_bids)
+
     print("Contract: ",table.board.winning_bid)
 
 

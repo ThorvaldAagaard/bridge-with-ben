@@ -233,12 +233,9 @@ class Board:
         self.auction.append(bid)
         self.available_bids, self.special_bids = self.get_available_bids()
         # Checking that bidding phase is over
-        #if self.end_bidding():
-            #if self.dealer == 0:
-            #    self.bidding = [None, None, None] + self.bidding
-            #else:
-                #self.bidding = [None] * (self.dealer - 1) + self.bidding
-            #print(self.bidding)
+        if self.end_bidding():
+            self.available_bids = None
+            self.special_bids = None
 
     def get_available_bids(self):
         """
@@ -284,8 +281,7 @@ class Board:
         :return: boolean
         """
         bidding = [x for x in self.bidding if x is not None]
-        print(bidding,len(bidding))
-
+        
         # Auction begins with four consecutive passes
         if  len(bidding) == 4:
             if all(b.bid == "PASS" for b in bidding[:4]):
@@ -295,7 +291,6 @@ class Board:
         # Three consecutive passes following a bid, double or redouble
         if len(bidding) > 3:
             if all(b.bid == "PASS" for b in bidding[-3:]) and len(bidding) > 3:
-                print("XX", self.trump)
                 self.status = "play"
                 # Setting the lead, the trump and the dummy
                 self.set_lead()
@@ -347,9 +342,9 @@ class Board:
             if c.symbol == card_symbol:
                 card = c
                 hand.remove(c)
-        if card == None:
-            print(hand)
-            print(c)
+        
+        assert card is not None, f"card is None: hand={hand}, c={c}"
+        
         if len(hand) > 0:
             hand[-1].last_card = True
         # Card is visible for everyone

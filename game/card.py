@@ -57,6 +57,9 @@ class Card:
         if self.value < other.value:
             return True
         return False
+        
+    def get_ben_value(self):
+        return self.symbol.replace("14","A").replace("13","K").replace("12","Q").replace("11","J").replace("10","T")
 
     def set_value(self, lead_color):
         """

@@ -139,7 +139,7 @@ def redraw_bidding(win, font, buttons, table, board, user, normal_bids, special_
     # Drawing cards
     draw_cards(win, font, table, board, user)
     # Drawing bidding box, when it's user turn
-    if board.turn == user.position:
+    if board.turn == user.position and normal_bids != None:
         last_x = 0
         for i, bids in enumerate(normal_bids.items()):
             # Drawing level bids sequentially
@@ -197,13 +197,15 @@ def redraw_bidding(win, font, buttons, table, board, user, normal_bids, special_
     # Drawing called bids
     for i, b in enumerate(board.bidding):
         if b:
+            row = ((board.dealer) + i) // 4
             # South is dealer)
             if (board.dealer == 0):
                 row = (i+3) // 4
-            else:
-                row = ((board.dealer) + i) // 4
+            if (board.dealer == 2):
+                row = (i+1) // 4
+            if (board.dealer == 3):
+                row = (i+2) // 4
             y = 345 + (row) * 35 + 19
-            print(b.bid)
             if (b.bid == "X" or b.bid == "XX"):
                 x = (((board.dealer - 1) + i) % 4 - 1.5) * 60
                 text = font.render(b.bid, 1, (0, 50, 0))                 
