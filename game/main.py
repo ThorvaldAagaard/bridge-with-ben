@@ -377,7 +377,7 @@ async def main():
             card_resp = await opening_lead(models, sampler)
             if (card_resp == "Skip"): continue
             print("Opening lead: ",card_resp.card)
-            skip = await play(models, sampler, table.board, deck52.encode_card(card_resp.card))
+            skip = await play(models, sampler, table.board, deck52.encode_card(str(card_resp.card)))
             if skip == "Skip": continue
         # Board is done, displaying score and dealing next board
         if table.board.score:

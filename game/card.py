@@ -106,3 +106,6 @@ class Card:
 
     def __repr__(self):
         return f"{self.symbol}"
+
+    def __str__(self):
+        return f"{suit}{value}"
